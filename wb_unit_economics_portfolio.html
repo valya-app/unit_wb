@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WB Unit — юнит-экономика ассортимента</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--text:#16181c;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--good:#0a7d47;--bad:#c0392b;--warn:#b7791f;--soft:#f8fafc}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,textarea{font:inherit}
+.app{max-width:1440px;margin:0 auto;padding:24px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}.brand h1{margin:0;font-size:28px}.brand p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;cursor:pointer}.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.panel{display:none}.panel.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.metric small{color:var(--muted);display:block;margin-bottom:7px}.metric b{font-size:23px}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{color:var(--bad)}
+.search{min-width:240px;flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}th{background:var(--soft);color:#475569;position:sticky;top:0;z-index:1}td.num,th.num{text-align:right}td input{width:110px;padding:7px 8px;border:1px solid var(--line);border-radius:8px}.nameInput{width:180px!important}.skuInput{width:130px!important}.rowbad{background:#fff7f6}.rowwarn{background:#fffaf0}.muted{color:var(--muted)}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:1fr 150px;gap:12px 16px;align-items:center}.field label{font-size:14px}.hint{display:block;color:var(--muted);font-size:12px;margin-top:3px}.unit{position:relative}.unit input{width:100%;padding:10px 38px 10px 10px;border:1px solid var(--line);border-radius:10px}.unit span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px}
+.note{padding:12px 14px;background:var(--soft);border-radius:12px;color:#475569;font-size:12px;line-height:1.55;margin-top:14px}.importBox{display:grid;grid-template-columns:1fr 1fr;gap:14px}.drop{border:1px dashed #cbd5e1;border-radius:14px;padding:16px}.drop textarea{width:100%;min-height:190px;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}.drop input[type=file]{width:100%;padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.sectionTitle{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 14px}.sectionTitle h2{font-size:18px;margin:0}.badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#eef2f7;color:#475569}.empty{text-align:center;padding:42px 20px;color:var(--muted)}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.settings,.importBox{grid-template-columns:1fr}}@media(max-width:620px){.app{padding:14px}.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 110px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><h1>WB Unit</h1><p>Юнит-экономика ассортимента по индивидуальным условиям Wildberries</p></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="dashboard">Сводка</button>
+      <button class="tab" data-tab="products">Товары</button>
+      <button class="tab" data-tab="settings">Настройки</button>
+      <button class="tab" data-tab="import">Импорт</button>
+    </div>
+  </div>
+
+  <section id="dashboard" class="panel active">
+    <div class="grid" style="margin-bottom:14px">
+      <div class="metric"><small>Товаров</small><b id="mCount">0</b></div>
+      <div class="metric"><small>Средняя маржинальность</small><b id="mMargin">—</b></div>
+      <div class="metric"><small>Средний ROI</small><b id="mROI">—</b></div>
+      <div class="metric"><small>Товаров в минусе</small><b id="mNegative">0</b></div>
+      <div class="metric"><small>Суммарная прибыль / 1 выкуп каждой SKU</small><b id="mProfit">—</b></div>
+      <div class="metric"><small>Средняя цена</small><b id="mPrice">—</b></div>
+      <div class="metric"><small>Средняя себестоимость</small><b id="mCogs">—</b></div>
+      <div class="metric"><small>Обязательные расходы от выручки</small><b id="mFixedPct">—</b></div>
+    </div>
+    <div class="card">
+      <div class="sectionTitle"><h2>Контроль прибыльности</h2><span class="badge" id="healthBadge">Нет данных</span></div>
+      <div id="healthContent" class="empty">Добавьте товары — здесь появится сводка по прибыльности.</div>
+    </div>
+  </section>
+
+  <section id="products" class="panel">
+    <div class="card">
+      <div class="sectionTitle"><h2>Товары</h2><span class="badge">Расчёт на 1 выкуп</span></div>
+      <div class="toolbar">
+        <button class="btn primary" onclick="addProduct()">+ Добавить товар</button>
+        <input id="search" class="search" placeholder="Поиск по SKU или названию…" oninput="renderProducts()">
+        <button class="btn" onclick="exportCSV()">Экспорт CSV</button>
+        <button class="btn danger" onclick="clearProducts()">Очистить список</button>
+      </div>
+      <div class="tableWrap">
+        <table>
+          <thead><tr><th>SKU / артикул</th><th>Название</th><th class="num">Цена, ₽</th><th class="num">Себестоимость, ₽</th><th class="num">Доп. расход, ₽</th><th class="num">Расходы, ₽</th><th class="num">Прибыль, ₽</th><th class="num">Маржа</th><th class="num">ROI</th><th class="num">Макс. ДРР</th><th></th></tr></thead>
+          <tbody id="productRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" class="panel">
+    <div class="settings">
+      <div class="card">
+        <div class="sectionTitle"><h2>Основные условия</h2><span class="badge">Сохраняются автоматически</span></div>
+        <div class="fields">
+          <label>Комиссия + хранение + логистика WB<span class="hint">Единый процент по вашим индивидуальным условиям</span></label><div class="unit"><input id="sWb" type="number" step="0.1"><span>%</span></div>
+          <label>Минимальный ДРР<span class="hint">Обязательные расходы на рекламу от выручки</span></label><div class="unit"><input id="sAds" type="number" step="0.1"><span>%</span></div>
+          <label>Эквайринг<span class="hint">Процент от выручки</span></label><div class="unit"><input id="sAcq" type="number" step="0.1"><span>%</span></div>
+          <label>Налог с выручки<span class="hint">Например, УСН</span></label><div class="unit"><input id="sTax" type="number" step="0.1"><span>%</span></div>
+          <label>НДС / дополнительный налог<span class="hint">Если применимо; можно оставить 0</span></label><div class="unit"><input id="sVat" type="number" step="0.1"><span>%</span></div>
+          <label>Прочие расходы от выручки<span class="hint">Бонусы, агентские и т.п.</span></label><div class="unit"><input id="sOther" type="number" step="0.1"><span>%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sectionTitle"><h2>Как считаем</h2></div>
+        <div class="note" style="margin-top:0">
+          <b>Прибыль</b> = Цена − Себестоимость − Доп. расходы − все процентные расходы.<br><br>
+          <b>Маржинальность</b> = Прибыль / Цена × 100%.<br><br>
+          <b>ROI</b> = Прибыль / Себестоимость × 100%.<br><br>
+          <b>Макс. ДРР</b> показывает, какой процент рекламы товар выдержит до прибыли 0 ₽.
+        </div>
+        <div class="note"><b>Не входят автоматически в 43%:</b> обратная логистика по браку, вывоз по заявке и автовозвраты на ПВЗ по FBS. Их можно закладывать в колонку «Доп. расход, ₽» по каждой SKU.</div>
+        <button class="btn" style="margin-top:14px" onclick="resetSettings()">Вернуть ваши базовые условия</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="import" class="panel">
+    <div class="card">
+      <div class="sectionTitle"><h2>Массовая загрузка товаров</h2><span class="badge">CSV или вставка из таблицы</span></div>
+      <div class="importBox">
+        <div class="drop">
+          <h3 style="margin-top:0;font-size:15px">Вставить из Excel / Google Sheets</h3>
+          <p class="muted" style="font-size:12px">Колонки: SKU → Название → Цена → Себестоимость → Доп. расход. Можно вставлять строки прямо из таблицы.</p>
+          <textarea id="pasteArea" placeholder="GM01\tКуртка женская\t7990\t2800\t0\nGM02\tКуртка короткая\t6990\t2400\t50"></textarea>
+          <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" onclick="importPaste()">Добавить товары</button><button class="btn" onclick="document.getElementById('pasteArea').value=''">Очистить</button></div>
+        </div>
+        <div class="drop">
+          <h3 style="margin-top:0;font-size:15px">Загрузить CSV</h3>
+          <p class="muted" style="font-size:12px">Поддерживаются разделители ; , или табуляция. Заголовок можно оставить — он будет распознан автоматически.</p>
+          <input id="csvFile" type="file" accept=".csv,.txt" />
+          <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" onclick="importFile()">Загрузить CSV</button><button class="btn" onclick="downloadTemplate()">Скачать шаблон</button></div>
+          <div class="note">Пример колонок: <b>SKU;Название;Цена;Себестоимость;ДопРасход</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+const KEY='wb_unit_portfolio_v2';
+const defaultSettings={wb:43,ads:7,acq:3,tax:0,vat:0,other:0};
+let state=loadState();
+function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{settings:{...defaultSettings},products:[]}}catch(e){return{settings:{...defaultSettings},products:[]}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));renderAll()}
+function rub(v){return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(v||0)+' ₽'}
+function pct(v){return (Number(v)||0).toFixed(1).replace('.',',')+'%'}
+function calcProduct(p){const s=state.settings;const price=+p.price||0,cogs=+p.cogs||0,extra=+p.extra||0;const fixed=s.wb+s.ads+s.acq+s.tax+s.vat+s.other;const percentCosts=price*fixed/100;const costs=cogs+extra+percentCosts;const profit=price-costs;const margin=price?profit/price*100:0;const roi=cogs?profit/cogs*100:0;const maxAds=price?100-(s.wb+s.acq+s.tax+s.vat+s.other)-((cogs+extra)/price*100):0;return{costs,profit,margin,roi,maxAds}}
+function renderAll(){syncSettingsUI();renderProducts();renderDashboard()}
+function syncSettingsUI(){[['sWb','wb'],['sAds','ads'],['sAcq','acq'],['sTax','tax'],['sVat','vat'],['sOther','other']].forEach(([id,k])=>{const el=document.getElementById(id);if(document.activeElement!==el)el.value=state.settings[k]})}
+function addProduct(){state.products.push({id:Date.now()+Math.random(),sku:'',name:'',price:0,cogs:0,extra:0});save();showTab('products')}
+function updateProduct(id,key,value){const p=state.products.find(x=>x.id==id);if(!p)return;p[key]=['price','cogs','extra'].includes(key)?(+value||0):value;localStorage.setItem(KEY,JSON.stringify(state));renderDashboard(); if(['price','cogs','extra'].includes(key)) renderProducts()}
+function removeProduct(id){state.products=state.products.filter(x=>x.id!=id);save()}
+function clearProducts(){if(!state.products.length)return;if(confirm('Удалить весь список товаров?')){state.products=[];save()}}
+function renderProducts(){const body=document.getElementById('productRows');if(!body)return;const q=(document.getElementById('search')?.value||'').toLowerCase();const list=state.products.filter(p=>(p.sku+' '+p.name).toLowerCase().includes(q));if(!list.length){body.innerHTML='<tr><td colspan="11" class="empty">Нет товаров. Добавьте вручную или загрузите списком.</td></tr>';return}body.innerHTML=list.map(p=>{const c=calcProduct(p);const cls=c.profit<0?'rowbad':c.margin<10?'rowwarn':'';return `<tr class="${cls}"><td><input class="skuInput" value="${esc(p.sku)}" onchange="updateProduct('${p.id}','sku',this.value)"></td><td><input class="nameInput" value="${esc(p.name)}" onchange="updateProduct('${p.id}','name',this.value)"></td><td class="num"><input type="number" value="${p.price}" onchange="updateProduct('${p.id}','price',this.value)"></td><td class="num"><input type="number" value="${p.cogs}" onchange="updateProduct('${p.id}','cogs',this.value)"></td><td class="num"><input type="number" value="${p.extra||0}" onchange="updateProduct('${p.id}','extra',this.value)"></td><td class="num">${rub(c.costs)}</td><td class="num ${c.profit>=0?'good':'bad'}"><b>${rub(c.profit)}</b></td><td class="num ${c.margin<0?'bad':c.margin<10?'warn':'good'}">${pct(c.margin)}</td><td class="num">${pct(c.roi)}</td><td class="num">${pct(c.maxAds)}</td><td><button class="btn danger" onclick="removeProduct('${p.id}')">×</button></td></tr>`}).join('')}
+function renderDashboard(){const ps=state.products;const count=ps.length;document.getElementById('mCount').textContent=count;if(!count){['mMargin','mROI','mProfit','mPrice','mCogs'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('mNegative').textContent='0';document.getElementById('mFixedPct').textContent=pct(Object.values(state.settings).reduce((a,b)=>a+(+b||0),0));document.getElementById('healthBadge').textContent='Нет данных';document.getElementById('healthContent').innerHTML='<div class="empty">Добавьте товары — здесь появится сводка по прибыльности.</div>';return}
+const cs=ps.map(calcProduct);const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;const margins=cs.map(x=>x.margin),rois=cs.map(x=>x.roi),profits=cs.map(x=>x.profit);const neg=cs.filter(x=>x.profit<0).length;document.getElementById('mMargin').textContent=pct(avg(margins));document.getElementById('mROI').textContent=pct(avg(rois));document.getElementById('mProfit').textContent=rub(profits.reduce((a,b)=>a+b,0));document.getElementById('mPrice').textContent=rub(avg(ps.map(p=>+p.price||0)));document.getElementById('mCogs').textContent=rub(avg(ps.map(p=>+p.cogs||0)));document.getElementById('mNegative').textContent=neg;document.getElementById('mNegative').className=neg?'bad':'';document.getElementById('mFixedPct').textContent=pct(Object.values(state.settings).reduce((a,b)=>a+(+b||0),0));const warn=cs.filter(x=>x.profit>=0&&x.margin<10).length;const healthy=count-neg-warn;document.getElementById('healthBadge').textContent=`${healthy} прибыльных · ${warn} низкая маржа · ${neg} в минусе`;
+const risky=ps.map((p,i)=>({p,c:cs[i]})).filter(x=>x.c.profit<0||x.c.margin<10).sort((a,b)=>a.c.margin-b.c.margin).slice(0,12);document.getElementById('healthContent').innerHTML=risky.length?`<div class="tableWrap"><table style="min-width:760px"><thead><tr><th>SKU</th><th>Название</th><th class="num">Цена</th><th class="num">Прибыль</th><th class="num">Маржа</th><th class="num">Макс. ДРР</th></tr></thead><tbody>${risky.map(x=>`<tr class="${x.c.profit<0?'rowbad':'rowwarn'}"><td>${esc(x.p.sku)||'—'}</td><td>${esc(x.p.name)||'—'}</td><td class="num">${rub(x.p.price)}</td><td class="num ${x.c.profit<0?'bad':'good'}">${rub(x.c.profit)}</td><td class="num">${pct(x.c.margin)}</td><td class="num">${pct(x.c.maxAds)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty good">Все товары имеют маржинальность не ниже 10%.</div>'}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function showTab(id){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id))}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+[['sWb','wb'],['sAds','ads'],['sAcq','acq'],['sTax','tax'],['sVat','vat'],['sOther','other']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>{state.settings[k]=Math.max(0,+e.target.value||0);localStorage.setItem(KEY,JSON.stringify(state));renderProducts();renderDashboard()}));
+function resetSettings(){state.settings={...defaultSettings};save()}
+function detectSep(line){if(line.includes('\t'))return '\t';const sc=(line.match(/;/g)||[]).length,cc=(line.match(/,/g)||[]).length;return sc>=cc?';':','}
+function normalizeNum(v){return +(String(v??'').replace(/\s/g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
+function parseRows(text){const lines=text.trim().split(/\r?\n/).filter(Boolean);if(!lines.length)return[];const sep=detectSep(lines[0]);let rows=lines.map(l=>l.split(sep).map(x=>x.trim().replace(/^"|"$/g,'')));const first=rows[0].join(' ').toLowerCase();if(/sku|артик|назван|цена|себестоим/.test(first))rows=rows.slice(1);return rows.filter(r=>r.some(Boolean)).map(r=>({id:Date.now()+Math.random(),sku:r[0]||'',name:r[1]||'',price:normalizeNum(r[2]),cogs:normalizeNum(r[3]),extra:normalizeNum(r[4])}))}
+function importPaste(){const rows=parseRows(document.getElementById('pasteArea').value);if(!rows.length){alert('Не удалось распознать строки. Проверьте формат.');return}state.products.push(...rows);document.getElementById('pasteArea').value='';save();showTab('products')}
+function importFile(){const f=document.getElementById('csvFile').files[0];if(!f){alert('Сначала выберите CSV-файл.');return}const r=new FileReader();r.onload=()=>{const rows=parseRows(r.result);if(!rows.length){alert('Не удалось распознать файл.');return}state.products.push(...rows);save();showTab('products')};r.readAsText(f,'UTF-8')}
+function downloadTemplate(){downloadText('wb_template.csv','SKU;Название;Цена;Себестоимость;ДопРасход\nGM01;Куртка женская;7990;2800;0\nGM02;Куртка короткая;6990;2400;50')}
+function exportCSV(){const head=['SKU','Название','Цена','Себестоимость','ДопРасход','ВсеРасходы','Прибыль','Маржа','ROI','МаксДРР'];const lines=[head.join(';')];state.products.forEach(p=>{const c=calcProduct(p);lines.push([p.sku,p.name,p.price,p.cogs,p.extra||0,Math.round(c.costs),Math.round(c.profit),c.margin.toFixed(1),c.roi.toFixed(1),c.maxAds.toFixed(1)].map(v=>String(v).replace(/;/g,',')).join(';'))});downloadText('wb_unit_economics.csv','\ufeff'+lines.join('\n'))}
+function downloadText(name,text){const b=new Blob([text],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+renderAll();
+</script>
+</body>
+</html>
