@@ -14,7 +14,7 @@
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{color:var(--bad)}
 .search{min-width:240px;flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}th{background:var(--soft);color:#475569;position:sticky;top:0;z-index:1}td.num,th.num{text-align:right}td input{width:110px;padding:7px 8px;border:1px solid var(--line);border-radius:8px}.nameInput{width:180px!important}.skuInput{width:130px!important}.rowbad{background:#fff7f6}.rowwarn{background:#fffaf0}.muted{color:var(--muted)}
 .settings{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:1fr 150px;gap:12px 16px;align-items:center}.field label{font-size:14px}.hint{display:block;color:var(--muted);font-size:12px;margin-top:3px}.unit{position:relative}.unit input{width:100%;padding:10px 38px 10px 10px;border:1px solid var(--line);border-radius:10px}.unit span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px}
-.note{padding:12px 14px;background:var(--soft);border-radius:12px;color:#475569;font-size:12px;line-height:1.55;margin-top:14px}.importBox{display:grid;grid-template-columns:1fr 1fr;gap:14px}.drop{border:1px dashed #cbd5e1;border-radius:14px;padding:16px}.drop textarea{width:100%;min-height:190px;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}.drop input[type=file]{width:100%;padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.note.show{display:block!important}.note{padding:12px 14px;background:var(--soft);border-radius:12px;color:#475569;font-size:12px;line-height:1.55;margin-top:14px}.importBox{display:grid;grid-template-columns:1fr 1fr;gap:14px}.drop{border:1px dashed #cbd5e1;border-radius:14px;padding:16px}.drop textarea{width:100%;min-height:190px;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}.drop input[type=file]{width:100%;padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}
 .sectionTitle{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 14px}.sectionTitle h2{font-size:18px;margin:0}.badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#eef2f7;color:#475569}.empty{text-align:center;padding:42px 20px;color:var(--muted)}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.settings,.importBox{grid-template-columns:1fr}}@media(max-width:620px){.app{padding:14px}.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 110px}}
 </style>
@@ -55,8 +55,11 @@
         <button class="btn primary" onclick="addProduct()">+ Добавить товар</button>
         <input id="search" class="search" placeholder="Поиск по SKU или названию…" oninput="renderProducts()">
         <button class="btn" onclick="exportCSV()">Экспорт CSV</button>
+        <button class="btn" onclick="exportProductsJSON()">Скачать products.json</button>
+        <button class="btn" onclick="reloadShared()">Обновить из общей базы</button>
         <button class="btn danger" onclick="clearProducts()">Очистить список</button>
       </div>
+      <div id="localDataNotice" class="note" style="display:none;margin:0 0 12px"><b>Найдены товары, сохранённые ранее в этом браузере.</b> Сейчас показана ваша локальная версия. Нажмите «Скачать products.json», загрузите этот файл в GitHub вместо текущего — и эти товары станут общей базой для всех коллег.</div>
       <div class="tableWrap">
         <table>
           <thead><tr><th>SKU / артикул</th><th>Название</th><th class="num">Цена, ₽</th><th class="num">Себестоимость, ₽</th><th class="num">Доп. расход, ₽</th><th class="num">Расходы, ₽</th><th class="num">Прибыль, ₽</th><th class="num">Маржа</th><th class="num">ROI</th><th class="num">Макс. ДРР</th><th></th></tr></thead>
@@ -88,7 +91,7 @@
           <b>Макс. ДРР</b> показывает, какой процент рекламы товар выдержит до прибыли 0 ₽.
         </div>
         <div class="note"><b>Не входят автоматически в 43%:</b> обратная логистика по браку, вывоз по заявке и автовозвраты на ПВЗ по FBS. Их можно закладывать в колонку «Доп. расход, ₽» по каждой SKU.</div>
-        <button class="btn" style="margin-top:14px" onclick="resetSettings()">Вернуть ваши базовые условия</button>
+        <button class="btn" style="margin-top:14px" onclick="resetSettings()">Вернуть общие условия</button> <button class="btn" style="margin-top:14px" onclick="exportSettingsJSON()">Скачать settings.json</button>
       </div>
     </div>
   </section>
@@ -116,9 +119,32 @@
 </div>
 <script>
 const KEY='wb_unit_portfolio_v2';
-const defaultSettings={wb:43,ads:7,acq:3,tax:0,vat:0,other:0};
-let state=loadState();
-function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{settings:{...defaultSettings},products:[]}}catch(e){return{settings:{...defaultSettings},products:[]}}}
+const defaultSettings={wb:43,ads:7,acq:3,tax:2,vat:5,other:0};
+let sharedState={settings:{...defaultSettings},products:[]};
+let state={settings:{...defaultSettings},products:[]};
+function loadLocalState(){try{return JSON.parse(localStorage.getItem(KEY))||null}catch(e){return null}}
+async function loadSharedFiles(){
+  try{
+    const [settingsRes,productsRes]=await Promise.all([
+      fetch('settings.json?v='+Date.now()),
+      fetch('products.json?v='+Date.now())
+    ]);
+    const settings=settingsRes.ok?await settingsRes.json():{...defaultSettings};
+    const products=productsRes.ok?await productsRes.json():[];
+    sharedState={settings:{...defaultSettings,...settings},products:Array.isArray(products)?products:[]};
+  }catch(e){
+    console.warn('Не удалось загрузить общие JSON-файлы',e);
+    sharedState={settings:{...defaultSettings},products:[]};
+  }
+  const local=loadLocalState();
+  if(local && Array.isArray(local.products) && local.products.length){
+    state={settings:{...sharedState.settings,...(local.settings||{})},products:local.products};
+    document.getElementById('localDataNotice')?.classList.add('show');
+  }else{
+    state=JSON.parse(JSON.stringify(sharedState));
+  }
+  renderAll();
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));renderAll()}
 function rub(v){return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(v||0)+' ₽'}
 function pct(v){return (Number(v)||0).toFixed(1).replace('.',',')+'%'}
@@ -137,7 +163,7 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function showTab(id){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id))}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 [['sWb','wb'],['sAds','ads'],['sAcq','acq'],['sTax','tax'],['sVat','vat'],['sOther','other']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>{state.settings[k]=Math.max(0,+e.target.value||0);localStorage.setItem(KEY,JSON.stringify(state));renderProducts();renderDashboard()}));
-function resetSettings(){state.settings={...defaultSettings};save()}
+function resetSettings(){state.settings={...sharedState.settings};save()}
 function detectSep(line){if(line.includes('\t'))return '\t';const sc=(line.match(/;/g)||[]).length,cc=(line.match(/,/g)||[]).length;return sc>=cc?';':','}
 function normalizeNum(v){return +(String(v??'').replace(/\s/g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
 function parseRows(text){const lines=text.trim().split(/\r?\n/).filter(Boolean);if(!lines.length)return[];const sep=detectSep(lines[0]);let rows=lines.map(l=>l.split(sep).map(x=>x.trim().replace(/^"|"$/g,'')));const first=rows[0].join(' ').toLowerCase();if(/sku|артик|назван|цена|себестоим/.test(first))rows=rows.slice(1);return rows.filter(r=>r.some(Boolean)).map(r=>({id:Date.now()+Math.random(),sku:r[0]||'',name:r[1]||'',price:normalizeNum(r[2]),cogs:normalizeNum(r[3]),extra:normalizeNum(r[4])}))}
@@ -145,8 +171,14 @@ function importPaste(){const rows=parseRows(document.getElementById('pasteArea')
 function importFile(){const f=document.getElementById('csvFile').files[0];if(!f){alert('Сначала выберите CSV-файл.');return}const r=new FileReader();r.onload=()=>{const rows=parseRows(r.result);if(!rows.length){alert('Не удалось распознать файл.');return}state.products.push(...rows);save();showTab('products')};r.readAsText(f,'UTF-8')}
 function downloadTemplate(){downloadText('wb_template.csv','SKU;Название;Цена;Себестоимость;ДопРасход\nGM01;Куртка женская;7990;2800;0\nGM02;Куртка короткая;6990;2400;50')}
 function exportCSV(){const head=['SKU','Название','Цена','Себестоимость','ДопРасход','ВсеРасходы','Прибыль','Маржа','ROI','МаксДРР'];const lines=[head.join(';')];state.products.forEach(p=>{const c=calcProduct(p);lines.push([p.sku,p.name,p.price,p.cogs,p.extra||0,Math.round(c.costs),Math.round(c.profit),c.margin.toFixed(1),c.roi.toFixed(1),c.maxAds.toFixed(1)].map(v=>String(v).replace(/;/g,',')).join(';'))});downloadText('wb_unit_economics.csv','\ufeff'+lines.join('\n'))}
-function downloadText(name,text){const b=new Blob([text],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
-renderAll();
+function exportProductsJSON(){
+  const clean=state.products.map((p,i)=>({id:p.id||('sku_'+(i+1)),sku:p.sku||'',name:p.name||'',price:+p.price||0,cogs:+p.cogs||0,extra:+p.extra||0}));
+  downloadText('products.json',JSON.stringify(clean,null,2),'application/json;charset=utf-8');
+}
+function exportSettingsJSON(){downloadText('settings.json',JSON.stringify(state.settings,null,2),'application/json;charset=utf-8')}
+function reloadShared(){if(state.products.length&&!confirm('Заменить текущие локальные данные общей базой из GitHub?'))return;state=JSON.parse(JSON.stringify(sharedState));localStorage.removeItem(KEY);document.getElementById('localDataNotice')?.classList.remove('show');renderAll()}
+function downloadText(name,text,type='text/csv;charset=utf-8'){const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+loadSharedFiles();
 </script>
 </body>
 </html>
